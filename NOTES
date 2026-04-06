@@ -1,0 +1,9 @@
+Fluxo do agente:
+1. Evento chega (event_log)
+2. Agente decide:
+    atraso → usa CPM
+    risco → usa PERT
+    conflito → usa Resource
+3. Resultado → gera ação
+4. Guarda em:
+    replan_snapshots
