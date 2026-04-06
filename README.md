@@ -1,5 +1,12 @@
 # mcp-easter-challenge
 
+## Levantar a base de dados
+```bash
+docker compose down -v
+docker compose up -d
+docker compose logs -f
+```
+
 ## Instruções para correr o projeto
 1. Criar o ambiente dele (limpo e compatível):
 ```bash
