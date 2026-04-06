@@ -5,7 +5,7 @@ from CPM_Tool import cpm_tool as planning_cpm_tool
 from PERT_Tool import pert_tool as planning_pert_tool
 
 from DB_Tool import check_mysql_connection as logic_db_check
-from DB_Tool import check_mysql_connection, fetch_all_plans
+from DB_Tool import fetch_all_plans
 
 mcp = FastMCP("PlannerServer")
 
@@ -13,17 +13,17 @@ mcp = FastMCP("PlannerServer")
 @mcp.tool()
 def resource_tool(plan_id: str) -> str:
     """Analisa a carga de trabalho dos recursos (Overload) para um dado plan_id."""
-    return planning_resource_tool.invoke({"plan_id": plan_id})
+    return planning_resource_tool(plan_id)
 
 @mcp.tool()
 def cpm_tool(plan_id: str) -> str:
     """Calcula o Critical Path Method (CPM) para um dado plan_id."""
-    return planning_cpm_tool.invoke({"plan_id": plan_id})
+    return planning_cpm_tool(plan_id)
 
 @mcp.tool()
 def pert_tool(plan_id: str) -> str:
     """Calcula as estimativas PERT (P50, P90, P95) para um dado plan_id."""
-    return planning_pert_tool.invoke({"plan_id": plan_id})
+    return planning_pert_tool(plan_id)
 
 @mcp.tool()
 def test_db_connection() -> str:

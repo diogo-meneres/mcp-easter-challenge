@@ -1,37 +1,22 @@
 from collections import deque
 from typing import Dict, List, Tuple
 
-from langchain.tools import tool
-from pydantic import BaseModel, Field
-
-import pymysql
-
-
-def get_db_connection():
-    return pymysql.connect(
-        host='127.0.0.1', port=3306, user='root', password='root',
-        database='planner', cursorclass=pymysql.cursors.DictCursor
-    )
+from DB_Tool import get_db_connection, release_db_connection
 
 def fetch_tasks_and_dependencies(plan_id: str) -> Tuple[List[dict], List[dict]]:
-    conn = get_db_connection()
     try:
+        conn = get_db_connection()
         with conn.cursor() as cursor:
-            # 1. Buscar as tarefas (id e duração)
             cursor.execute("SELECT id, duration_h FROM tasks WHERE plan_id = %s", (plan_id,))
             tasks = cursor.fetchall()
             
-            # 2. Buscar as dependências (quem depende de quem)
             cursor.execute("SELECT from_task_id, to_task_id, lag_h FROM task_dependencies WHERE plan_id = %s", (plan_id,))
             deps = cursor.fetchall()
             
-            return tasks, deps
+            return tasks, deps  
     finally:
-        conn.close()
-
-
-class CPMInput(BaseModel):
-    plan_id: str = Field(description="ID do plano a analisar")
+        if 'conn' in locals() and conn is not None:
+            release_db_connection(conn)
 
 
 def _build_graph(tasks: List[dict], deps: List[dict]) -> Dict[str, dict]:
@@ -71,7 +56,6 @@ def _build_graph(tasks: List[dict], deps: List[dict]) -> Dict[str, dict]:
 
     return task_map
 
-
 def _topological_order(task_map: Dict[str, dict]) -> List[str]:
     indegree = {task_id: 0 for task_id in task_map}
 
@@ -96,8 +80,6 @@ def _topological_order(task_map: Dict[str, dict]) -> List[str]:
 
     return order
 
-
-@tool(args_schema=CPMInput)
 def cpm_tool(plan_id: str) -> str:
     """
     Calcula CPM:

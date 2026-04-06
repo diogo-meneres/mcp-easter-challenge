@@ -1,21 +1,11 @@
 import math
 from typing import List, Tuple
 
-from langchain.tools import tool
-from pydantic import BaseModel, Field
-
-
-import pymysql
-
-def get_db_connection():
-    return pymysql.connect(
-        host='127.0.0.1', port=3306, user='root', password='root',
-        database='planner', cursorclass=pymysql.cursors.DictCursor
-    )
+from DB_Tool import get_db_connection, release_db_connection
 
 def fetch_pert_data(plan_id: str):
-    conn = get_db_connection()
     try:
+        conn = get_db_connection()
         with conn.cursor() as cursor:
             cursor.execute("SELECT duration_h FROM tasks WHERE plan_id = %s", (plan_id,))
             tasks = cursor.fetchall()
@@ -29,15 +19,14 @@ def fetch_pert_data(plan_id: str):
                 pert_data.append((o, m, p))
             
             return pert_data
+    except Exception as e:
+        # Apanha qualquer erro e devolve como texto para o LLM ler
+        return f"❌ Erro ao analisar recursos: {str(e)}"    
     finally:
-        conn.close()
+        if 'conn' in locals() and conn is not None:
+            release_db_connection(conn)
 
 
-class PERTInput(BaseModel):
-    plan_id: str = Field(description="ID do plano")
-
-
-@tool(args_schema=PERTInput)
 def pert_tool(plan_id: str) -> str:
     """
     Calcula P50, P90 e P95 via aproximação normal:

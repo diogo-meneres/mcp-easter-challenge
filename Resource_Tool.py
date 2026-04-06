@@ -1,17 +1,10 @@
-from pydantic import BaseModel, Field
-from langchain.tools import tool
 import pymysql
 
-
-def get_db_connection():
-    return pymysql.connect(
-        host='127.0.0.1', port=3306, user='root', password='root',
-        database='planner', cursorclass=pymysql.cursors.DictCursor
-    )
+from DB_Tool import get_db_connection, release_db_connection
 
 def fetch_resource_load(plan_id: str):
-    conn = get_db_connection()
     try:
+        conn = get_db_connection()
         with conn.cursor() as cursor:
             # 1. Definir janela temporal (dias do plano)
             cursor.execute("SELECT DATEDIFF(baseline_end, baseline_start) + 1 AS dias FROM plans WHERE id = %s", (plan_id,))
@@ -39,15 +32,12 @@ def fetch_resource_load(plan_id: str):
                 r['horas_alocadas'] = float(r['horas_alocadas'])
             
             return resultados
+    except Exception as e:
+        # Apanha qualquer erro e devolve como texto para o LLM ler
+        return f"❌ Erro ao analisar recursos: {str(e)}"    
     finally:
         conn.close()
 
-
-class ResourceInput(BaseModel):
-    plan_id: str = Field(description="ID do plano")
-
-
-@tool(args_schema=ResourceInput)
 def resource_tool(plan_id: str) -> str:
     """
     Analisa carga dos recursos:
